@@ -78,7 +78,7 @@
                 e.preventDefault();
                 const sendBtn = $('#sendBtn');
                 sendBtn.prop('disabled', true);
-                
+
                 const message = $messageInput.val().trim();
                 const currentTimestamp = new Date().getTime();
                 let done = false;
@@ -109,7 +109,7 @@
 
                     window.evtSource.onmessage = function(event) {
                         const data = JSON.parse(event.data);
-                        const receivedMessage = data.message;
+                        let receivedMessage = data.message;
 
 
                         if (!currentMessageElement) {
@@ -127,7 +127,10 @@
                         } else {
                             // 현재 메시지에 새 글자 추가
                             currentMessageElement = $(`#${currentTimestamp + 1}`);
-                            currentMessageElement.text(currentMessageElement.text() + receivedMessage);
+                            if (receivedMessage !== '\n') {
+                              receivedMessage = receivedMessage.replace(/(?:\r\n|\r|\n)/g, '<br>');
+                            }
+                            currentMessageElement.html(currentMessageElement.html() + receivedMessage);
 
                         }
                         scrollToBottom();
