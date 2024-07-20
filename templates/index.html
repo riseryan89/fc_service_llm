@@ -127,9 +127,7 @@
                         } else {
                             // 현재 메시지에 새 글자 추가
                             currentMessageElement = $(`#${currentTimestamp + 1}`);
-                            if (receivedMessage !== '\n') {
-                              receivedMessage = receivedMessage.replace(/(?:\r\n|\r|\n)/g, '<br>');
-                            }
+                            receivedMessage = receivedMessage.replace(/(?:\r\n|\r|\n)/g, '<br>')
                             currentMessageElement.html(currentMessageElement.html() + receivedMessage);
 
                         }
