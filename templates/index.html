@@ -1,9 +1,169 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>간단한 채팅 UI</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #chat-container {
+            height: 700px;
+            overflow-y: scroll;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .chat-message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+        .chat-message.sent {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+        }
+        .chat-message.received {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+    </style>
 </head>
 <body>
-    <p>Hello</p>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div id="chat-container" class="border rounded p-3">
+                    <!-- 채팅 메시지들이 여기에 추가됩니다 -->
+                </div>
+                <form id="chat-form" class="mt-3">
+                    <div class="input-group">
+                        <input type="text" id="message-input" class="form-control" placeholder="메시지를 입력하세요...">
+                        <button class="btn btn-primary" id="sendBtn" type="submit">전송</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const $chatContainer = $('#chat-container');
+            const $messageInput = $('#message-input');
+            const $chatForm = $('#chat-form');
+
+            //add listener for $messageInput.onchange
+            $messageInput.on('change', function() {
+                console.log('message input changed');
+            });
+
+
+            function addMessage(message, isSent, currentTimestamp) {
+                const messageClass = isSent ? 'sent' : 'received';
+                const $message = $('<div>').addClass(`chat-message ${messageClass}`).text(message);
+                $message.attr('id', currentTimestamp.toString())
+                $chatContainer.prepend($message);
+                scrollToBottom();
+            }
+
+            function scrollToBottom() {
+                $chatContainer.scrollTop(0);
+            }
+
+
+
+            $chatForm.on('submit', function(e) {
+                e.preventDefault();
+                const sendBtn = $('#sendBtn');
+                sendBtn.prop('disabled', true);
+                
+                const message = $messageInput.val().trim();
+                const currentTimestamp = new Date().getTime();
+                let done = false;
+
+                // 메세지 최대 길이 200자 제한
+                if (message.length > 200) {
+                    alert('메시지는 200자 이하로 입력해주세요.');
+                    return;
+                }
+
+
+                // 메시지가 비어있지 않은 경우에만 메시지 전송
+                if (message) {
+                    addMessage(message, true, currentTimestamp);  // 사용자 메시지를 즉시 표시
+                    $messageInput.val('');
+
+
+                    // 기존 EventSource 연결 종료 (있다면)
+                    if (window.evtSource) {
+                        window.evtSource.close();
+                    }
+
+                    // 새 EventSource 연결 생성
+                    const encodedMessage = encodeURIComponent(message);
+                    window.evtSource = new EventSource(`/chat?message=${encodedMessage}`);
+
+                    let currentMessageElement = null;
+
+                    window.evtSource.onmessage = function(event) {
+                        const data = JSON.parse(event.data);
+                        const receivedMessage = data.message;
+
+
+                        if (!currentMessageElement) {
+                            // 새 메시지 엘리먼트 생성
+                            console.log('created')
+                            addMessage("", false, currentTimestamp + 1);
+
+                        }
+
+                        if (receivedMessage === '[END]') {
+                            done = true;
+                            sendBtn.prop('disabled', false);
+                            window.evtSource.close();
+
+                        } else {
+                            // 현재 메시지에 새 글자 추가
+                            currentMessageElement = $(`#${currentTimestamp + 1}`);
+                            currentMessageElement.text(currentMessageElement.text() + receivedMessage);
+
+                        }
+                        scrollToBottom();
+                    };
+
+
+                    window.evtSource.onerror = function(err) {
+                        if (!done) {
+                            console.error("EventSource failed:", err);
+                        }
+                        sendBtn.prop('disabled', false);
+                        window.evtSource.close();
+                    };
+                }
+            });
+
+
+            // 스크롤 이벤트 리스너
+            let isScrolling = false;
+            $chatContainer.on('scroll', function() {
+                isScrolling = true;
+            });
+
+            // 새 메시지가 추가될 때 자동 스크롤
+            {#function autoScroll() {#}
+            {#    if (!isScrolling) {#}
+            {#        scrollToBottom();#}
+            {#    }#}
+            {#    isScrolling = false;#}
+            {# } #}
+
+            // 테스트를 위한 더미 메시지 추가
+            addMessage("안녕하세요!", false, 1);
+            addMessage("반갑습니다.", true, 2);
+            addMessage("오늘 날씨가 좋네요.", false, 3);
+        });
+    </script>
 </body>
 </html>

@@ -17,9 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
-from app.views import index_page
+from app.views import index_page, chat_stream
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", index_page)
+    path("", index_page),
+    path('chat', chat_stream, name='chat_stream'),
+
 ]
